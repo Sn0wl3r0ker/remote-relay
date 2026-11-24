@@ -4,13 +4,20 @@ retry.addEventListener('click', () => location.reload());
 
 async function openControl() {
   const theme = await magpie.ready;
-  const options = await magpie.options.get();
-  if (!/^[a-f0-9]{64}$/.test(options?.controlKey ?? '')) {
-    progress.textContent = '請執行 node relayctl.mjs install 完成一次性安裝，再重開此頁。';
+  const options = await magpie.options.get() ?? {};
+  const hasKey = /^[a-f0-9]{64}$/.test(options.controlKey ?? '');
+  const port = Number(options.port);
+  const hasPort = Number.isInteger(port) && port >= 1025 && port <= 65535;
+  if (!hasKey || !hasPort) {
+    progress.textContent = '正在初始化模型轉發…';
+    const bytes = crypto.getRandomValues(new Uint8Array(32));
+    const controlKey = hasKey ? options.controlKey : Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0')).join('');
+    const controlPort = hasPort ? port : 49152 + (crypto.getRandomValues(new Uint16Array(1))[0] % 16384);
+    await magpie.options.set({ ...options, controlKey, port: controlPort });
+    // Saving options restarts the Magpie plugin host. The fresh page starts it again.
+    location.reload();
     return;
   }
-  const port = Number(options.port ?? 3495);
-  if (!Number.isInteger(port) || port < 1025 || port > 65535) throw new Error('控制連接埠無效。');
   const url = new URL(magpie.service || `http://127.0.0.1:${port}/`);
   url.hash = new URLSearchParams({ key: options.controlKey, theme: theme.dark ? 'dark' : 'light' }).toString();
   location.replace(url);

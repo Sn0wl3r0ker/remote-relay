@@ -6,7 +6,7 @@ Remote Relay 是 `cablate/model-relay` 的 Magpie 控制插件。轉發、子代
 
 ## 安裝
 
-需要 Linux、Node.js 20 以上、`flock`、Magpie 和 Claude Code。此版本已用 Magpie 0.1.4726、Claude Code 2.1.330 的插件目錄和 Model Relay 0.7.5 驗證。
+需要 Linux、Node.js 20 以上、`flock`、Magpie 和 Claude Code。Magpie 啟動時使用的 `PATH` 要找得到 `node`。
 
 ### 1. 設定 Model Relay
 
@@ -21,15 +21,19 @@ claude plugin install model-relay@model-relay --scope user
 
 ### 2. 將 Remote Relay 加入 Magpie
 
-下載後保留這個資料夾。Magpie 會從該路徑載入插件。
+在 Magpie 開啟 **設定 → 插件 → 已安裝**，點選新增插件，貼上以下來源後安裝。
 
-```sh
-git clone https://github.com/Sn0wl3r0ker/remote-relay.git
-cd remote-relay
-node relayctl.mjs install
+```text
+github:Sn0wl3r0ker/remote-relay
 ```
 
-安裝會註冊插件並記錄本機 Node.js 路徑。開啟 Magpie，從側欄點選 **Remote Relay** 或 **模型轉發**。如果 Magpie 已開著，請重新開啟後再查看側欄。
+安裝完成後，從側欄點選 **Remote Relay** 或 **模型轉發**。控制頁第一次開啟時會自動初始化。也可以用 Magpie CLI 安裝同一份插件。
+
+```sh
+magpie plugin add github:Sn0wl3r0ker/remote-relay
+```
+
+如果先前透過本機路徑安裝 Remote Relay，在原本的控制頁按 **停用並復原**。看到「已停用」後，從 Magpie 的已安裝清單移除本機路徑那筆，再貼上 GitHub 來源。
 
 ## 在 Magpie 啟停轉發
 
@@ -43,7 +47,7 @@ Model Relay 設為 `proxy.enabled: true` 時，Remote Relay 會先確認本機 H
 
 ### 從終端機切換
 
-在 `remote-relay` 資料夾中執行以下指令。
+如果你另外下載了原始碼，可在 `remote-relay` 資料夾中執行以下指令。
 
 | 指令 | 用途 |
 | --- | --- |
@@ -65,8 +69,8 @@ Model Relay 設為 `proxy.enabled: true` 時，Remote Relay 會先確認本機 H
 | --- | --- |
 | 切換後 Claude 還在走舊路由 | 結束舊對話並重新開啟 Claude Code。若仍使用舊路由，檢查啟動 Claude 的 shell、專案設定和啟動指令是否另外指定 `ANTHROPIC_BASE_URL` 或代理。 |
 | 控制頁找不到 Model Relay 設定 | 確認原版插件以 `user` 範圍安裝，並用 `/provider setup` 完成格式 2 設定。若用 `CLAUDE_CONFIG_DIR`，確認 Magpie 指到同一份設定。 |
-| 更換了 Node.js 或用 NVM 切換版本 | 用要採用的 Node.js 執行 `node relayctl.mjs install`，更新 Magpie 記錄的執行路徑。 |
-| 控制頁連不上 | 控制頁預設使用 `127.0.0.1:3495`。如果這個連接埠已被占用，到 Magpie 的插件選項修改 `port`，並保留 `controlKey` 和 `nodePath`。Model Relay 的轉發站由它自己的設定檔指定連接埠。 |
+| Magpie 找不到 Node.js | 從載入 Node.js 20 以上的終端機啟動 Magpie，或在插件選項設 `nodePath` 為 Node.js 的絕對路徑。 |
+| 控制頁連不上 | 控制頁在第一次開啟時選用本機連接埠。如果這個連接埠已被占用，到 Magpie 的插件選項修改 `port`，保留其他選項，再重開控制頁。Model Relay 的轉發站由它自己的設定檔指定連接埠。 |
 
 ## 執行測試
 

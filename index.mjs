@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { timingSafeEqual } from 'node:crypto';
-import { readJson } from './lib/relay.mjs';
+import { pluginEntry } from './lib/magpie.mjs';
 
 const run = promisify(execFile);
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -29,7 +29,8 @@ function reply(res, code, data) {
 }
 
 async function start(input, options) {
-  const port = Number(options?.port ?? 3495);
+  if (!/^[a-f0-9]{64}$/.test(options?.controlKey ?? '') || options.port === undefined) return {};
+  const port = Number(options.port);
   if (!Number.isInteger(port) || port < 1025 || port > 65535) throw new Error('Remote Relay 的控制連接埠無效。');
   const registry = path.join(input.directory, 'plugins.json');
   const authority = `127.0.0.1:${port}`;
@@ -60,17 +61,19 @@ async function start(input, options) {
     if (req.method !== (action === 'status' ? 'GET' : 'POST')) return reply(res, 405, { error: '不支援此方法。' });
     void (async () => {
       try {
-        const row = readJson(registry)?.data.plugins?.find((p) => p.spec === root && p.off !== true);
-        if (!hasKey(req.headers[header], row?.options?.controlKey)) return reply(res, 403, { error: '請從 Magpie 的 Remote Relay 頁面開啟。' });
-        const node = row.options.nodePath;
-        if (typeof node !== 'string' || !path.isAbsolute(node) || !fs.existsSync(node)) {
-          return reply(res, 409, { error: '找不到安裝時使用的 Node.js。請重新執行 node relayctl.mjs install。' });
+        const row = pluginEntry(registry, root);
+        if (row?.off === true || !hasKey(req.headers[header], row?.options?.controlKey)) {
+          return reply(res, 403, { error: '請重新開啟 Magpie 側欄的 Remote Relay。' });
         }
+        const node = row.options.nodePath ?? process.env.MAGPIE_REMOTE_RELAY_NODE ?? 'node';
         const args = action === 'on' ? [registry, row.spec] : [];
         const result = await run(node, [path.join(root, 'relayctl.mjs'), action, ...args], { timeout: 25000 });
         reply(res, 200, JSON.parse(result.stdout));
       } catch (error) {
-        reply(res, 409, { error: error.stderr?.trim() || '切換失敗，請用 relayctl.mjs status 檢查。' });
+        const detail = error.code === 'ENOENT' || error.code === 'EACCES'
+          ? 'Magpie 找不到可執行的 Node.js。請確認 Magpie 的 PATH，或在插件選項指定 nodePath。'
+          : error.stderr?.trim() || '切換失敗，請重新開啟 Remote Relay。';
+        reply(res, 409, { error: detail });
       }
     })();
   });

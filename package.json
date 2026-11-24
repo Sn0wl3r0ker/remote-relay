@@ -1,6 +1,6 @@
 {
   "name": "magpie-remote-relay",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Control Claude Code's Model Relay from Magpie and restore the previous settings when it is paused.",
   "type": "module",
@@ -13,7 +13,6 @@
       "titles": { "zh-TW": "模型轉發", "zh": "模型转发" },
       "file": "page/index.html",
       "service": { "port": 3495, "option": "port" }
-    },
-    "options": { "port": 3495 }
+    }
   }
 }
