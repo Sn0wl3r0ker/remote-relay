@@ -1,0 +1,12 @@
+/node_modules/
+/coverage/
+.env
+.env.*
+/.claude/
+/.magpie-remote-relay/
+/settings.json
+/model-relay.json
+/model-relay-pki/
+/model-relay-state.json
+/model-relay-status/
+/model-relay*.log
