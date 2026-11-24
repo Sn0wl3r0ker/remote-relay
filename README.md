@@ -21,7 +21,7 @@ claude plugin install model-relay@model-relay --scope user
 
 ### 2. 將 Remote Relay 加入 Magpie
 
-在 Magpie 開啟 **設定 → 插件 → 已安裝**，點選新增插件，貼上以下來源後安裝。
+在 Magpie 開啟 **設定 → 插件 → Discover**，捲到頁面底部的手動安裝區（**Have one in mind?**）。把以下來源貼到 GitHub repo 輸入欄，按 **Install**。
 
 ```text
 github:Sn0wl3r0ker/remote-relay
