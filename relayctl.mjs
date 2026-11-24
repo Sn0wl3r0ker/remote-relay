@@ -7,18 +7,20 @@ import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { once } from 'node:events';
 import { setTimeout as wait } from 'node:timers/promises';
+import { withDirectoryLock } from './lib/lock.mjs';
 import { pluginEntry } from './lib/magpie.mjs';
 import { disable, enable, locations, status, watchState } from './lib/relay.mjs';
 
 const script = fileURLToPath(import.meta.url);
 const root = path.dirname(script);
 const loc = locations();
-const registry = path.join(process.env.XDG_CONFIG_HOME || path.join(os.homedir(), '.config'), 'magpie', 'plugins.json');
+const configHome = process.env.XDG_CONFIG_HOME || '';
+const registry = path.join(path.isAbsolute(configHome) ? configHome : path.join(os.homedir(), '.config'), 'magpie', 'plugins.json');
 const command = process.argv[2] || 'status';
 
 function magpie(args) {
   const result = spawnSync(process.env.MAGPIE_BIN || 'magpie', args, {
-    encoding: 'utf8', timeout: 60000,
+    encoding: 'utf8', timeout: 60000, windowsHide: true,
   });
   if (result.error) throw result.error;
   if (result.status !== 0) throw new Error(result.stderr?.trim() || result.stdout?.trim() || 'Magpie 指令失敗。');
@@ -40,8 +42,17 @@ function install() {
 
 async function withLock(operation, seconds = 10, name = 'control.lock') {
   fs.mkdirSync(loc.stateDir, { mode: 0o700, recursive: true });
+  const lockPath = path.join(loc.stateDir, name);
+  if (process.platform !== 'linux' || !fs.existsSync(lockPath)) {
+    return withDirectoryLock(`${lockPath}.d`, seconds, operation);
+  }
+  return withLegacyLock(lockPath, seconds, operation);
+}
+
+async function withLegacyLock(lockPath, seconds, operation) {
+  // Existing Linux watchers still coordinate through flock on the original lock file.
   // The helper keeps the lock until its stdin closes. Cleanup can run even after Magpie deletes the package.
-  const lock = spawn('flock', ['-w', String(seconds), path.join(loc.stateDir, name),
+  const lock = spawn('flock', ['-w', String(seconds), lockPath,
     'sh', '-c', 'printf 1; cat >/dev/null'], { stdio: ['pipe', 'pipe', 'ignore'] });
   lock.stdin.on('error', () => {});
   const closed = new Promise((resolve) => lock.once('close', resolve));
@@ -62,7 +73,9 @@ async function withLock(operation, seconds = 10, name = 'control.lock') {
 }
 
 async function startWatch(id) {
-  const child = spawn(process.execPath, [script, '_watch', id], { detached: true, stdio: ['ignore', 'pipe', 'ignore'] });
+  const child = spawn(process.execPath, [script, '_watch', id], {
+    detached: true, stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+  });
   try {
     // Wait until the watcher has loaded its code, before Magpie can remove the files it came from.
     const [ready] = await Promise.race([
@@ -113,7 +126,7 @@ async function turnOff() {
 }
 
 try {
-  if (process.platform !== 'linux') throw new Error('目前支援 Linux。');
+  if (!['darwin', 'linux', 'win32'].includes(process.platform)) throw new Error('目前支援 macOS、Linux 和 Windows。');
   if (process.versions.bun || Number(process.versions.node.split('.')[0]) < 20) {
     throw new Error('Remote Relay 需要 Node.js 20 以上。');
   }

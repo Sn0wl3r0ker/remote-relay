@@ -17,7 +17,7 @@ test('a GitHub package uses the options Magpie saved for its exact install sourc
   await mkdir(installed, { recursive: true });
   await mkdir(source);
   await mkdir(localSource);
-  await symlink(source, path.join(installed, 'magpie-remote-relay'));
+  await symlink(source, path.join(installed, 'magpie-remote-relay'), process.platform === 'win32' ? 'junction' : 'dir');
 
   const git = { spec: 'github:example-owner/remote-relay', options: { port: 4321 } };
   const local = { spec: localSource, options: { port: 9876 } };

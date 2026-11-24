@@ -67,7 +67,7 @@ async function start(input, options) {
         }
         const node = row.options.nodePath ?? process.env.MAGPIE_REMOTE_RELAY_NODE ?? 'node';
         const args = action === 'on' ? [registry, row.spec] : [];
-        const result = await run(node, [path.join(root, 'relayctl.mjs'), action, ...args], { timeout: 25000 });
+        const result = await run(node, [path.join(root, 'relayctl.mjs'), action, ...args], { timeout: 25000, windowsHide: true });
         reply(res, 200, JSON.parse(result.stdout));
       } catch (error) {
         const detail = error.code === 'ENOENT' || error.code === 'EACCES'

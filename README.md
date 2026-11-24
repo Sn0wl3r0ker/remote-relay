@@ -6,7 +6,7 @@ Remote Relay 是 `cablate/model-relay` 的 Magpie 控制插件。轉發、子代
 
 ## 安裝
 
-需要 Linux、Node.js 20 以上、`flock`、Magpie 和 Claude Code。Magpie 啟動時使用的 `PATH` 要找得到 `node`。
+支援 macOS、Linux 和 Windows。需要 Node.js 20 以上、Magpie 和 Claude Code。Magpie 啟動時使用的 `PATH` 要找得到 `node`。Windows 會使用系統內建的 Windows PowerShell 查證轉發程序。
 
 ### 1. 設定 Model Relay
 
@@ -55,7 +55,7 @@ Model Relay 設為 `proxy.enabled: true` 時，Remote Relay 會先確認本機 H
 | `node relayctl.mjs on` | 啟用轉發。 |
 | `node relayctl.mjs off` | 復原 Claude 設定並停止轉發。 |
 
-如果你用 `CLAUDE_CONFIG_DIR` 自訂 Claude 設定目錄，請在啟動 Magpie 和執行終端機指令時帶入相同的變數。
+如果你用 `CLAUDE_CONFIG_DIR` 自訂 Claude 設定目錄，請在啟動 Magpie 和執行終端機指令時帶入相同的變數。Windows 的 `~/.claude` 對應 `%USERPROFILE%\.claude`。
 
 ## 停用時會復原什麼
 
@@ -74,10 +74,10 @@ Model Relay 設為 `proxy.enabled: true` 時，Remote Relay 會先確認本機 H
 
 ## 執行測試
 
-安裝 OpenSSL 後，在專案目錄執行測試。
+在專案目錄執行以下指令。HTTPS 測試會使用 `PATH` 裡的 `openssl`，也可以用 `OPENSSL_BIN` 指定執行檔。如果 OpenSSL 在 Windows 上有獨立的安裝路徑，請提供 `openssl.exe` 的絕對路徑。
 
 ```sh
 node --test
 ```
 
-測試使用臨時 Claude 設定目錄和本機測試端點，涵蓋反覆切換、接管既有 HTTPS 代理、保留外部變更、原生停用後等待請求結束、TLS 驗證失敗時撤回變更、損壞的設定檔以及連接埠占用。轉發與備援的整合驗證使用 Magpie 網頁版、實際的 Model Relay 和模擬供應商。 [Magpie 插件介面](https://usemagpie.ai/docs/plugins)
+GitHub Actions 會在 macOS、Linux 和 Windows 各跑一輪。測試使用臨時 Claude 設定目錄和本機端點，涵蓋啟停、接管既有程序、請求排空、HTTPS 交握、復原設定和連接埠占用。轉發與備援的整合驗證使用 Magpie 網頁版、實際的 Model Relay 和模擬供應商。 [跨平台測試](https://github.com/Sn0wl3r0ker/remote-relay/actions/workflows/tests.yml) · [Magpie 插件介面](https://usemagpie.ai/docs/plugins)
