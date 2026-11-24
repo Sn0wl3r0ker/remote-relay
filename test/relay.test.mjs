@@ -71,7 +71,7 @@ async function fixture(t, config = {}) {
     await mkdir(pki);
     await exec(process.env.OPENSSL_BIN || 'openssl', ['req', '-x509', '-newkey', 'ec', '-pkeyopt', 'ec_paramgen_curve:P-256', '-nodes',
       '-days', '1', '-subj', '/CN=api.anthropic.com', '-addext', 'subjectAltName=DNS:api.anthropic.com',
-      '-keyout', path.join(pki, 'leaf.key'), '-out', path.join(pki, 'ca.pem')]);
+      '-keyout', 'leaf.key', '-out', 'ca.pem'], { cwd: pki });
   }
   const relay = path.join(dir, 'model-relay.json');
   const settings = path.join(dir, 'settings.json');
@@ -112,7 +112,17 @@ test('stops an already-running Model Relay from the same config directory', asyn
     if (router.exitCode === null) router.kill();
     await closed;
   });
-  await until(async () => (await f.ctl('status')).phase === 'unmanaged');
+  try {
+    await until(async () => (await f.ctl('status')).phase === 'unmanaged');
+  } catch (error) {
+    if (process.platform === 'darwin' && router.pid) {
+      const { stdout } = await exec('/bin/ps', ['-ww', '-p', String(router.pid), '-o', 'uid=', '-o', 'lstart=', '-o', 'command='], {
+        env: { ...process.env, LC_ALL: 'en_US.UTF-8', TZ: 'UTC' },
+      });
+      t.diagnostic(JSON.stringify(stdout));
+    }
+    throw error;
+  }
   assert.equal((await f.ctl('off')).router, 'stopped');
   await closed;
   assert.deepEqual(await json(f.settings), f.initial);
